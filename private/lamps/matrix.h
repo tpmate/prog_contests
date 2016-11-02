@@ -1,6 +1,8 @@
 #ifndef __MATRIX_H__
 #define __MATRIX_H__
 
+#include <vector>
+
 typedef enum {
 	ELEMENT_EMPTY = 1u << 0,
 	ELEMENT_LIGHT = 1u << 1,
@@ -12,24 +14,42 @@ typedef enum {
 	ELEMENT_WALL4 = 1u << 7
 } ElementType;
 
-#define ANY_WALL (     \
-		ELEMENT_WALL | \
-		ELEMENT_WALL0| \
-		ELEMENT_WALL1| \
-		ELEMENT_WALL2| \
-		ELEMENT_WALL3| \
-		ELEMENT_WALL4  )
+#define RESTRICTED_WALL ( \
+		ELEMENT_WALL0|    \
+		ELEMENT_WALL1|    \
+		ELEMENT_WALL2|    \
+		ELEMENT_WALL3|    \
+		ELEMENT_WALL4     )
+
+#define ANY_WALL (      \
+		ELEMENT_WALL |  \
+		RESTRICTED_WALL )
+
 
 #define INDEX_OF(column, row, width) ((row)*(width)+(column))
 
-typedef struct
+struct Element
 {
 	ElementType type;
-} Element;
+};
 
-void getDataFromStdin (Element** matrix, size_t* width, size_t* height);
-void getDataFromFile(const char *inputFileName, Element** matrix, size_t* width, size_t* height);
+struct Matrix
+{
+private:
+	Matrix(): elements(), width(0), height(0) {}
+public:
+	std::vector<Element> elements;
+	size_t width;
+	size_t height;
 
-void printMatrix (Element* matrix, size_t width, size_t height);
+	static Matrix* getData(FILE* inputFile);
+	static Matrix* getDataFromStdin ();
+	static Matrix* getDataFromFile(const char *inputFileName);
+
+	void print();
+	bool isNextnonEmptyALight(int currentIndex, int difference, int count);
+	bool checkLights ();
+	bool isAllLit ();
+};
 
 #endif /* __MATRIX_H__ */

@@ -44,20 +44,32 @@ bool Matrix::checkLights ()
 		{
 			int currentIndex = INDEX_OF(c, r, width);
 			Element& e = elements[currentIndex];
-			if (e.type != ELEMENT_LIGHT)
+			if (e.type == ELEMENT_LIGHT)
 			{
-				continue;
+				bool isOK =
+						!isNextnonEmptyALight(currentIndex, -1,     c            ) && /* left  */
+						!isNextnonEmptyALight(currentIndex,  1,     width - c - 1) && /* right */
+						!isNextnonEmptyALight(currentIndex, -width, r            ) && /* up    */
+						!isNextnonEmptyALight(currentIndex,  width, height -r -1 );   /* down  */
+				if (!isOK)
+				{
+					return false;
+				}
+			} else if ((e.type & RESTRICTED_WALL) != 0){
+				int lightCount = 0;
+				if (c > 0        && elements[INDEX_OF(c-1, r, width)].type==ELEMENT_LIGHT) ++lightCount;
+				if (c < width-1  && elements[INDEX_OF(c+1, r, width)].type==ELEMENT_LIGHT) ++lightCount;
+				if (r > 0        && elements[INDEX_OF(c, r-1, width)].type==ELEMENT_LIGHT) ++lightCount;
+				if (r < height-1 && elements[INDEX_OF(c, r+1, width)].type==ELEMENT_LIGHT) ++lightCount;
+
+				if (e.type == ELEMENT_WALL0 && lightCount != 0) return false;
+				else if (e.type == ELEMENT_WALL1 && lightCount != 1) return false;
+				else if (e.type == ELEMENT_WALL2 && lightCount != 2) return false;
+				else if (e.type == ELEMENT_WALL3 && lightCount != 3) return false;
+				else if (e.type == ELEMENT_WALL4 && lightCount != 4) return false;
+
 			}
 
-			bool isOK =
-					!isNextnonEmptyALight(currentIndex, -1,     c            ) && /* left  */
-					!isNextnonEmptyALight(currentIndex,  1,     width - c - 1) && /* right */
-					!isNextnonEmptyALight(currentIndex, -width, r            ) && /* up    */
-					!isNextnonEmptyALight(currentIndex,  width, height -r -1 );   /* down  */
-			if (!isOK)
-			{
-				return false;
-			}
 		}
 	}
 	return true;
