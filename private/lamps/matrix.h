@@ -2,6 +2,9 @@
 #define __MATRIX_H__
 
 #include <vector>
+#include <cstdio>
+#include <string>
+
 
 typedef enum {
 	ELEMENT_EMPTY = 1u << 0,
@@ -39,12 +42,13 @@ private:
 	Matrix(): elements(), width(0), height(0) {}
 public:
 	std::vector<Element> elements;
-	size_t width;
-	size_t height;
+	int width;
+	int height;
 
 	static Matrix* getData(FILE* inputFile);
 	static Matrix* getDataFromStdin ();
 	static Matrix* getDataFromFile(const char *inputFileName);
+	static Matrix* getDataFromString(const std::string& s, int width, int height);
 
 	void print();
 	bool isNextnonEmptyALight(int currentIndex, int difference, int count);

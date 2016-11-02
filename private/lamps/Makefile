@@ -1,9 +1,9 @@
 CC=g++
 CFLAGS=-Wall -Wpedantic -ansi -O0 -g3
 
-DEPS = matrix.h
+DEPS = matrix.h solver.h
 
-OBJ = lamps.o matrix.o
+OBJ = lamps.o matrix.o solver.o
 
 %.o: %.cpp $(DEPS)
 	@echo "(CC) $<"

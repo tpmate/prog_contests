@@ -1,8 +1,11 @@
-#include <stdio.h>
-#include <malloc.h>
+#include <cstdio>
+#include <string>
 
 
 #include "matrix.h"
+#include "solver.h"
+
+using namespace std;
 
 int main ()
 {
@@ -10,26 +13,32 @@ int main ()
 #if 0
 	char* filename = "/home/mate/docs/programming/Peti/puzzle_of_lamps/input_test/t_07.txt";
 	matrix = Matrix::getDataFromFile(filename);
-#else
+#elif 0
 	matrix = Matrix::getDataFromStdin();
+#else
+	matrix = Matrix::getDataFromString(string("   \n   \n   "), 3, 3);
 #endif
 
 	if (matrix)
 	{
+		fprintf(stderr, "The original matrix is:\n");
 		matrix->print();
-		if (matrix->checkLights())
+		fprintf(stderr, "\n");
+
+		Solver solver;
+
+		if (solver.solve(*matrix))
 		{
-			fprintf(stderr, "lights: OK\n");
+			fprintf(stderr, "The solution is:\n");
+			matrix->print();
+			fprintf(stderr, "\n");
 		} else {
-			fprintf(stderr, "lights: NOT OK\n");
+			fprintf(stderr, "There is no solution with this matrix.\n");
 		}
-		if (matrix->isAllLit())
-		{
-			fprintf(stderr, "lit   : OK\n");
-		} else {
-			fprintf(stderr, "lit   : NOT OK\n");
-		}
+
 		delete matrix;
+	} else {
+		fprintf(stderr, "Failed to parse matrix\n");
 	}
 
 	return 0;
