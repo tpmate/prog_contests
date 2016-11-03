@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <string>
 #include "matrix.h"
 
 #define INPUT_BUF_SIZE 256
@@ -11,6 +12,71 @@
 #define WALL2 '2'
 #define WALL3 '3'
 #define WALL4 '4'
+
+using namespace std;
+
+void Matrix::calculateBlockStuff()
+{
+	/* do the horizontal stuff */
+	for (int r = 0; r < height; ++r)
+	{
+		horizontalBlockCounts.push_back(0);
+		int& blockCount = horizontalBlockCounts[r];
+		blockCount = 0;
+		int currentBlockIndex = 0;
+		bool blockStarted = false;
+		for (int c = 0; c < width; ++c)
+		{
+			Element& e = elements[INDEX_OF(c, r, width)];
+			if (e.type == ELEMENT_EMPTY)
+			{
+				if (!blockStarted)
+				{
+					blockStarted = true;
+					++blockCount;
+				}
+				e.horizontalBlockIndex = currentBlockIndex;
+			} else {
+				if (blockStarted)
+				{
+					blockStarted= false;
+					++currentBlockIndex;
+				}
+				e.horizontalBlockIndex = -1;
+			}
+		}
+	}
+
+	/* do the vertical stuff. Argh, evil copy paste*/
+	for (int c = 0; c < width; ++c)
+	{
+		verticalBlockCounts.push_back(0);
+		int& blockCount = verticalBlockCounts[c];
+		blockCount = 0;
+		int currentBlockIndex = 0;
+		bool blockStarted = false;
+		for (int r = 0; r < height; ++r)
+		{
+			Element& e = elements[INDEX_OF(c, r, width)];
+			if (e.type == ELEMENT_EMPTY)
+			{
+				if (!blockStarted)
+				{
+					blockStarted = true;
+					++blockCount;
+				}
+				e.verticalBlockIndex = currentBlockIndex;
+			} else {
+				if (blockStarted)
+				{
+					blockStarted= false;
+					++currentBlockIndex;
+				}
+				e.verticalBlockIndex = -1;
+			}
+		}
+	}
+}
 
 bool Matrix::isNextnonEmptyALight(int currentIndex, int difference, int count)
 {
@@ -192,6 +258,7 @@ Matrix* Matrix::getDataFromString(const std::string& s, int width, int height)
 
 	matrix->width = width;
 	matrix->height = cl+1;
+	matrix->calculateBlockStuff();
 	return matrix;
 
 error:
@@ -334,6 +401,7 @@ Matrix* Matrix::getData(FILE* inputFile)
 
 	matrix->width = l_width;
 	matrix->height = cl+1;
+	matrix->calculateBlockStuff();
 	return matrix;
 
 error:
@@ -382,6 +450,25 @@ void Matrix::print ()
 {
 	int r, c;
 
+	string elementTypeHeader("matrix:");
+	string horizontalBlocksHeader("horizontal blocks:");
+	string verticalBlocksHeader("vertical blocks:");
+
+	fprintf (stderr, "%s  %s  %s\n",
+			elementTypeHeader.c_str(),
+			horizontalBlocksHeader.c_str(),
+			verticalBlocksHeader.c_str());
+
+	for (c = 0; c < (width*4)+13; ++c)
+	{
+		fprintf(stderr, " ");
+	}
+	for (c = 0; c < width; ++c)
+	{
+		fprintf(stderr, "% 3d", verticalBlockCounts[c]);
+	}
+	fprintf (stderr, "\n");
+
 	for (r = 0; r < height; ++r)
 	{
 		fprintf (stderr, "[");
@@ -410,6 +497,16 @@ void Matrix::print ()
 					outChar = '?'; break;
 			}
 			fprintf(stderr, "%c", outChar);
+		}
+		fprintf (stderr, "]  % 3d [", horizontalBlockCounts[r]);
+		for (c = 0; c < width; ++c)
+		{
+			fprintf(stderr, "% 3d", elements[INDEX_OF(c, r, width)].horizontalBlockIndex);
+		}
+		fprintf (stderr, "]  [");
+		for (c = 0; c < width; ++c)
+		{
+			fprintf(stderr, "% 3d", elements[INDEX_OF(c, r, width)].verticalBlockIndex);
 		}
 		fprintf (stderr, "]\n");
 	}

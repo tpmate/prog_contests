@@ -34,14 +34,19 @@ typedef enum {
 struct Element
 {
 	ElementType type;
+	int horizontalBlockIndex;
+	int verticalBlockIndex;
 };
 
 struct Matrix
 {
 private:
+	void calculateBlockStuff();
 	Matrix(): elements(), width(0), height(0) {}
 public:
 	std::vector<Element> elements;
+	std::vector<int> horizontalBlockCounts;
+	std::vector<int> verticalBlockCounts;
 	int width;
 	int height;
 

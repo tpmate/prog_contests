@@ -18,7 +18,7 @@ int main ()
 #elif 0
 	matrix = Matrix::getDataFromStdin();
 #elif 1
-	int n = 5;
+	int n = 8;
 	matrix = Matrix::getDataFromString(generator.getNextMatrix(n, n), n, n);
 #else
 	matrix = Matrix::getDataFromString(string("   \n#  \n   "), 3, 3);
