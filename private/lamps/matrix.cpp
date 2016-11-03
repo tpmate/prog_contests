@@ -384,6 +384,7 @@ void Matrix::print ()
 
 	for (r = 0; r < height; ++r)
 	{
+		fprintf (stderr, "[");
 		for (c = 0; c < width; ++c)
 		{
 			char outChar;
@@ -410,6 +411,6 @@ void Matrix::print ()
 			}
 			fprintf(stderr, "%c", outChar);
 		}
-		fprintf (stderr, "\n");
+		fprintf (stderr, "]\n");
 	}
 }

@@ -4,19 +4,24 @@
 
 #include "matrix.h"
 #include "solver.h"
+#include "generator.h"
 
 using namespace std;
 
 int main ()
 {
 	Matrix* matrix;
+	Generator generator;
 #if 0
 	char* filename = "/home/mate/docs/programming/Peti/puzzle_of_lamps/input_test/t_07.txt";
 	matrix = Matrix::getDataFromFile(filename);
 #elif 0
 	matrix = Matrix::getDataFromStdin();
+#elif 1
+	int n = 5;
+	matrix = Matrix::getDataFromString(generator.getNextMatrix(n, n), n, n);
 #else
-	matrix = Matrix::getDataFromString(string("   \n   \n   "), 3, 3);
+	matrix = Matrix::getDataFromString(string("   \n#  \n   "), 3, 3);
 #endif
 
 	if (matrix)
@@ -29,7 +34,7 @@ int main ()
 
 		if (solver.solve(*matrix))
 		{
-			fprintf(stderr, "The solution is:\n");
+			fprintf(stderr, "A solution is:\n");
 			matrix->print();
 			fprintf(stderr, "\n");
 		} else {
