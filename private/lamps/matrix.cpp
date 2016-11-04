@@ -15,64 +15,95 @@
 
 using namespace std;
 
+Element& Matrix::element(int column, int row)
+{
+	return elements[row*width+column];
+}
+
+const Element& Matrix::element(int column, int row) const
+{
+	return elements[row*width+column];
+}
+
 void Matrix::calculateBlockStuff()
 {
 	/* do the horizontal stuff */
-	for (int r = 0; r < height; ++r)
 	{
-		horizontalBlockCounts.push_back(0);
-		int& blockCount = horizontalBlockCounts[r];
-		blockCount = 0;
-		int currentBlockIndex = 0;
-		bool blockStarted = false;
-		for (int c = 0; c < width; ++c)
+		std::vector<std::vector<BlockData> >& blockListList = blockListLists.horizontalBlockListList;
+		for (int r = 0; r < height; ++r)
 		{
-			Element& e = elements[INDEX_OF(c, r, width)];
-			if (e.type == ELEMENT_EMPTY)
+			blockListList.push_back(std::vector<BlockData>());
+			std::vector<BlockData>& blockList = blockListList.back();
+			int currentBlockIndex = 0;
+			int blockStartIdx = -1;
+			for (int c = 0; c < width; ++c)
 			{
-				if (!blockStarted)
+				Element& e = element(c, r);
+				if (e.type == ELEMENT_EMPTY)
 				{
-					blockStarted = true;
-					++blockCount;
+					if (blockStartIdx == -1)
+					{
+						blockList.push_back(BlockData());
+						blockStartIdx = c;
+					}
+					e.horizontalBlockIndex = currentBlockIndex;
+				} else {
+					if (blockStartIdx != -1)
+					{
+						BlockData& blockData = blockList.back();
+						blockData.blockStart = blockStartIdx;
+						blockData.blockEnd = c;
+						blockStartIdx = -1;
+						++currentBlockIndex;
+					}
+					e.horizontalBlockIndex = -1;
 				}
-				e.horizontalBlockIndex = currentBlockIndex;
-			} else {
-				if (blockStarted)
-				{
-					blockStarted= false;
-					++currentBlockIndex;
-				}
-				e.horizontalBlockIndex = -1;
+			}
+			if (blockStartIdx != -1)
+			{
+				BlockData& blockData = blockList.back();
+				blockData.blockStart = blockStartIdx;
+				blockData.blockEnd = width;
 			}
 		}
 	}
-
 	/* do the vertical stuff. Argh, evil copy paste*/
-	for (int c = 0; c < width; ++c)
 	{
-		verticalBlockCounts.push_back(0);
-		int& blockCount = verticalBlockCounts[c];
-		blockCount = 0;
-		int currentBlockIndex = 0;
-		bool blockStarted = false;
-		for (int r = 0; r < height; ++r)
+		std::vector<std::vector<BlockData> >& blockListList = blockListLists.verticalBlockListList;
+		for (int c = 0; c < width; ++c)
 		{
-			Element& e = elements[INDEX_OF(c, r, width)];
-			if (e.type == ELEMENT_EMPTY)
+			blockListList.push_back(std::vector<BlockData>());
+			std::vector<BlockData>& blockList = blockListList.back();
+			int currentBlockIndex = 0;
+			int blockStartIdx = -1;
+			for (int r = 0; r < height; ++r)
 			{
-				if (!blockStarted)
+				Element& e = element(c, r);
+				if (e.type == ELEMENT_EMPTY)
 				{
-					blockStarted = true;
-					++blockCount;
+					if (blockStartIdx == -1)
+					{
+						blockList.push_back(BlockData());
+						blockStartIdx = c;
+					}
+					e.verticalBlockIndex = currentBlockIndex;
+				} else {
+					if (blockStartIdx != -1)
+					{
+						BlockData& blockData = blockList.back();
+						blockData.blockStart = blockStartIdx;
+						blockData.blockEnd = c;
+						blockStartIdx = -1;
+						++currentBlockIndex;
+					}
+					e.verticalBlockIndex = -1;
 				}
-				e.verticalBlockIndex = currentBlockIndex;
-			} else {
-				if (blockStarted)
-				{
-					blockStarted= false;
-					++currentBlockIndex;
-				}
-				e.verticalBlockIndex = -1;
+			}
+			if (blockStartIdx != -1)
+			{
+				BlockData& blockData = blockList.back();
+				blockData.blockStart = blockStartIdx;
+				blockData.blockEnd = width;
 			}
 		}
 	}
@@ -100,13 +131,38 @@ bool Matrix::isNextnonEmptyALight(int currentIndex, int difference, int count)
 	return false;
 }
 
+int Matrix::getLightCount (int column, int row) const
+{
+	int lightCount = 0;
+	if (column > 0        && element(column-1, row).type==ELEMENT_LIGHT) ++lightCount;
+	if (column < width-1  && element(column+1, row).type==ELEMENT_LIGHT) ++lightCount;
+	if (row > 0           && element(column, row-1).type==ELEMENT_LIGHT) ++lightCount;
+	if (row < height-1    && element(column, row+1).type==ELEMENT_LIGHT) ++lightCount;
+	return lightCount;
+}
+
+
+int Matrix::getLightCountForType(const ElementType& type) const
+{
+	switch (type)
+	{
+		case ELEMENT_WALL0: return 0;
+		case ELEMENT_WALL1: return 1;
+		case ELEMENT_WALL2: return 2;
+		case ELEMENT_WALL3: return 3;
+		case ELEMENT_WALL4: return 4;
+		default: return -1;
+	}
+}
+
+
 bool Matrix::checkLights ()
 {
 	for (int c = 0; c < width; ++c)
 	{
 		for (int r = 0; r < height; ++r)
 		{
-			int currentIndex = INDEX_OF(c, r, width);
+			int currentIndex = r*width+c;
 			Element& e = elements[currentIndex];
 			if (e.type == ELEMENT_LIGHT)
 			{
@@ -120,20 +176,12 @@ bool Matrix::checkLights ()
 					return false;
 				}
 			} else if ((e.type & RESTRICTED_WALL) != 0){
-				int lightCount = 0;
-				if (c > 0        && elements[INDEX_OF(c-1, r, width)].type==ELEMENT_LIGHT) ++lightCount;
-				if (c < width-1  && elements[INDEX_OF(c+1, r, width)].type==ELEMENT_LIGHT) ++lightCount;
-				if (r > 0        && elements[INDEX_OF(c, r-1, width)].type==ELEMENT_LIGHT) ++lightCount;
-				if (r < height-1 && elements[INDEX_OF(c, r+1, width)].type==ELEMENT_LIGHT) ++lightCount;
-
-				if (e.type == ELEMENT_WALL0 && lightCount != 0) return false;
-				else if (e.type == ELEMENT_WALL1 && lightCount != 1) return false;
-				else if (e.type == ELEMENT_WALL2 && lightCount != 2) return false;
-				else if (e.type == ELEMENT_WALL3 && lightCount != 3) return false;
-				else if (e.type == ELEMENT_WALL4 && lightCount != 4) return false;
-
+				int lightCount = getLightCount(c, r);
+				if (lightCount != getLightCountForType(e.type))
+				{
+					return false;
+				}
 			}
-
 		}
 	}
 	return true;
@@ -145,7 +193,7 @@ bool Matrix::isAllLit ()
 	{
 		for (int r = 0; r < height; ++r)
 		{
-			int currentIndex = INDEX_OF(c, r, width);
+			int currentIndex = r*width+c;
 			Element& e = elements[currentIndex];
 			if (e.type == ELEMENT_EMPTY)
 			{
@@ -465,7 +513,7 @@ void Matrix::print ()
 	}
 	for (c = 0; c < width; ++c)
 	{
-		fprintf(stderr, "% 3d", verticalBlockCounts[c]);
+		fprintf(stderr, "% 3d", (int)blockListLists.verticalBlockListList[c].size());
 	}
 	fprintf (stderr, "\n");
 
@@ -475,7 +523,7 @@ void Matrix::print ()
 		for (c = 0; c < width; ++c)
 		{
 			char outChar;
-			switch (elements[INDEX_OF(c, r, width)].type)
+			switch (element(c, r).type)
 			{
 				case ELEMENT_EMPTY:
 					outChar = EMPTY; break;
@@ -498,15 +546,15 @@ void Matrix::print ()
 			}
 			fprintf(stderr, "%c", outChar);
 		}
-		fprintf (stderr, "]  % 3d [", horizontalBlockCounts[r]);
+		fprintf (stderr, "]  % 3d [", (int)blockListLists.horizontalBlockListList[r].size());
 		for (c = 0; c < width; ++c)
 		{
-			fprintf(stderr, "% 3d", elements[INDEX_OF(c, r, width)].horizontalBlockIndex);
+			fprintf(stderr, "% 3d", element(c, r).horizontalBlockIndex);
 		}
 		fprintf (stderr, "]  [");
 		for (c = 0; c < width; ++c)
 		{
-			fprintf(stderr, "% 3d", elements[INDEX_OF(c, r, width)].verticalBlockIndex);
+			fprintf(stderr, "% 3d", element(c, r).verticalBlockIndex);
 		}
 		fprintf (stderr, "]\n");
 	}

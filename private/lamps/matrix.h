@@ -29,8 +29,6 @@ typedef enum {
 		RESTRICTED_WALL )
 
 
-#define INDEX_OF(column, row, width) ((row)*(width)+(column))
-
 struct Element
 {
 	ElementType type;
@@ -42,11 +40,23 @@ struct Matrix
 {
 private:
 	void calculateBlockStuff();
-	Matrix(): elements(), width(0), height(0) {}
+	Matrix(): elements(), blockListLists(), width(0), height(0){}
 public:
+	struct BlockData {
+		int hasLigth;
+		int blockStart; /* This index is in the block. */
+		int blockEnd; /* This index is NOT in the block. */
+		BlockData() :hasLigth(false), blockStart(-1), blockEnd(-1) {}
+	};
+	class BlockListLists
+	{
+	public:
+		std::vector<std::vector<BlockData> > horizontalBlockListList;
+		std::vector<std::vector<BlockData> > verticalBlockListList;
+	};
+
 	std::vector<Element> elements;
-	std::vector<int> horizontalBlockCounts;
-	std::vector<int> verticalBlockCounts;
+	BlockListLists blockListLists;
 	int width;
 	int height;
 
@@ -56,9 +66,13 @@ public:
 	static Matrix* getDataFromString(const std::string& s, int width, int height);
 
 	void print();
+	int getLightCount (int column, int row) const;
+	int getLightCountForType(const ElementType& type) const;
 	bool isNextnonEmptyALight(int currentIndex, int difference, int count);
 	bool checkLights ();
 	bool isAllLit ();
+	Element& element(int column, int row);
+	const Element& element(int column, int row) const;
 };
 
 #endif /* __MATRIX_H__ */

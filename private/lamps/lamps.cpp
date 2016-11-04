@@ -17,11 +17,13 @@ int main ()
 	matrix = Matrix::getDataFromFile(filename);
 #elif 0
 	matrix = Matrix::getDataFromStdin();
-#elif 1
+#elif 0
 	int n = 8;
 	matrix = Matrix::getDataFromString(generator.getNextMatrix(n, n), n, n);
 #else
-	matrix = Matrix::getDataFromString(string("   \n#  \n   "), 3, 3);
+	matrix = Matrix::getDataFromString(string(
+			"        \n        \n    #   \n#       \n    #   \n        \n  #     \n#    # 3")
+			, 8, 8);
 #endif
 
 	if (matrix)
