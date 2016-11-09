@@ -7,6 +7,7 @@
 class Solver
 {
 	bool solve(Matrix& matrix, int index);
+	bool sanityCheck(const Matrix& matrix) const;
 public:
 	bool solve(Matrix& matrix);
 };

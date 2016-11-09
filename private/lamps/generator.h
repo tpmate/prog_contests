@@ -6,13 +6,13 @@
 class Generator
 {
 	/* Probabilities are in 0.1% unit */
-	int wallProbability;
+/*	int wallProbability;
 	int numberedProbability;
-
+*/
 	int GetInt();
 public:
 	Generator();
-	std::string getNextMatrix(int width, int height);
+	std::string getNextMatrix(int width, int height, int wallProbability, int numberedProbability);
 };
 
 #endif /* __GENERATOR_H__ */

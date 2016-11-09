@@ -17,23 +17,31 @@ using namespace std;
 
 Element& Matrix::element(int column, int row)
 {
-	return elements[row*width+column];
+	return elements[indexOf(column, row)];
 }
 
 const Element& Matrix::element(int column, int row) const
 {
-	return elements[row*width+column];
+	return elements[indexOf(column, row)];
 }
+
+int Matrix::indexOf(int column, int row) const
+{
+	return row*width+column;
+}
+
+Matrix::BlockListList::BlockListList(bool isHorizontal)
+:isHorizontal(isHorizontal), list(){}
 
 void Matrix::calculateBlockStuff()
 {
 	/* do the horizontal stuff */
 	{
-		std::vector<std::vector<BlockData> >& blockListList = blockListLists.horizontalBlockListList;
+		BlockListList& blockListList = horizontalBlockListList;
 		for (int r = 0; r < height; ++r)
 		{
-			blockListList.push_back(std::vector<BlockData>());
-			std::vector<BlockData>& blockList = blockListList.back();
+			blockListList.list.push_back(std::vector<BlockData>());
+			std::vector<BlockData>& blockList = blockListList.list.back();
 			int currentBlockIndex = 0;
 			int blockStartIdx = -1;
 			for (int c = 0; c < width; ++c)
@@ -69,11 +77,11 @@ void Matrix::calculateBlockStuff()
 	}
 	/* do the vertical stuff. Argh, evil copy paste*/
 	{
-		std::vector<std::vector<BlockData> >& blockListList = blockListLists.verticalBlockListList;
+		BlockListList& blockListList = verticalBlockListList;
 		for (int c = 0; c < width; ++c)
 		{
-			blockListList.push_back(std::vector<BlockData>());
-			std::vector<BlockData>& blockList = blockListList.back();
+			blockListList.list.push_back(std::vector<BlockData>());
+			std::vector<BlockData>& blockList = blockListList.list.back();
 			int currentBlockIndex = 0;
 			int blockStartIdx = -1;
 			for (int r = 0; r < height; ++r)
@@ -84,7 +92,7 @@ void Matrix::calculateBlockStuff()
 					if (blockStartIdx == -1)
 					{
 						blockList.push_back(BlockData());
-						blockStartIdx = c;
+						blockStartIdx = r;
 					}
 					e.verticalBlockIndex = currentBlockIndex;
 				} else {
@@ -92,7 +100,7 @@ void Matrix::calculateBlockStuff()
 					{
 						BlockData& blockData = blockList.back();
 						blockData.blockStart = blockStartIdx;
-						blockData.blockEnd = c;
+						blockData.blockEnd = r;
 						blockStartIdx = -1;
 						++currentBlockIndex;
 					}
@@ -103,7 +111,7 @@ void Matrix::calculateBlockStuff()
 			{
 				BlockData& blockData = blockList.back();
 				blockData.blockStart = blockStartIdx;
-				blockData.blockEnd = width;
+				blockData.blockEnd = height;
 			}
 		}
 	}
@@ -162,7 +170,7 @@ bool Matrix::checkLights ()
 	{
 		for (int r = 0; r < height; ++r)
 		{
-			int currentIndex = r*width+c;
+			int currentIndex = indexOf(c, r);
 			Element& e = elements[currentIndex];
 			if (e.type == ELEMENT_LIGHT)
 			{
@@ -193,7 +201,7 @@ bool Matrix::isAllLit ()
 	{
 		for (int r = 0; r < height; ++r)
 		{
-			int currentIndex = r*width+c;
+			int currentIndex = indexOf(c, r);
 			Element& e = elements[currentIndex];
 			if (e.type == ELEMENT_EMPTY)
 			{
@@ -287,6 +295,7 @@ Matrix* Matrix::getDataFromString(const std::string& s, int width, int height)
 					}
 					/* fprintf(stderr, "setting column %d row %d -> index %d to '%c'\n", (int)cc, (int)cl, (int)INDEX_OF(cc, cl, l_width), buf[cursor]); */
 					matrix->elements.push_back(e);
+					matrix->elements.back().index = matrix->elements.size()-1;
 				}
 				++cc;
 				break;
@@ -428,6 +437,7 @@ Matrix* Matrix::getData(FILE* inputFile)
 						}
 						/* fprintf(stderr, "setting column %d row %d -> index %d to '%c'\n", (int)cc, (int)cl, (int)INDEX_OF(cc, cl, l_width), buf[cursor]); */
 						matrix->elements.push_back(e);
+						matrix->elements.back().index = matrix->elements.size()-1;
 					}
 					++cc;
 					break;
@@ -470,7 +480,7 @@ Matrix* Matrix::getDataFromStdin ()
 	return matrix;
 }
 
-Matrix* getDataFromFile(const char *inputFileName)
+Matrix* Matrix::getDataFromFile(const char *inputFileName)
 {
 	FILE* inputFile;
 
@@ -493,20 +503,28 @@ Matrix* getDataFromFile(const char *inputFileName)
 	return matrix;
 }
 
+//#define PRINT_BLOCK_STUFF
+//#define PRINT_BLOCK_LIST
 
 void Matrix::print ()
 {
 	int r, c;
 
 	string elementTypeHeader("matrix:");
+#ifdef PRINT_BLOCK_STUFF
 	string horizontalBlocksHeader("horizontal blocks:");
 	string verticalBlocksHeader("vertical blocks:");
+#endif
 
-	fprintf (stderr, "%s  %s  %s\n",
-			elementTypeHeader.c_str(),
+	fprintf (stderr, "%s", elementTypeHeader.c_str());
+#ifdef PRINT_BLOCK_STUFF
+	fprintf (stderr, "  %s  %s",
 			horizontalBlocksHeader.c_str(),
 			verticalBlocksHeader.c_str());
+#endif
+	fprintf (stderr, "\n");
 
+#ifdef PRINT_BLOCK_STUFF
 	for (c = 0; c < (width*4)+13; ++c)
 	{
 		fprintf(stderr, " ");
@@ -516,6 +534,7 @@ void Matrix::print ()
 		fprintf(stderr, "% 3d", (int)blockListLists.verticalBlockListList[c].size());
 	}
 	fprintf (stderr, "\n");
+#endif
 
 	for (r = 0; r < height; ++r)
 	{
@@ -546,7 +565,10 @@ void Matrix::print ()
 			}
 			fprintf(stderr, "%c", outChar);
 		}
-		fprintf (stderr, "]  % 3d [", (int)blockListLists.horizontalBlockListList[r].size());
+		fprintf (stderr, "]");
+
+#ifdef PRINT_BLOCK_STUFF
+		fprintf (stderr, "  % 3d [", (int)blockListLists.horizontalBlockListList[r].size());
 		for (c = 0; c < width; ++c)
 		{
 			fprintf(stderr, "% 3d", element(c, r).horizontalBlockIndex);
@@ -556,6 +578,32 @@ void Matrix::print ()
 		{
 			fprintf(stderr, "% 3d", element(c, r).verticalBlockIndex);
 		}
-		fprintf (stderr, "]\n");
+		fprintf (stderr, "]");
+#endif
+		fprintf (stderr, "\n");
 	}
+#ifdef PRINT_BLOCK_LIST
+	fprintf(stderr, "\nHORIZONTAL blocks:\n");
+	for (int row = 0; row < height; ++row)
+	{
+		fprintf(stderr, "row #%d: ", row);
+		for (int b = 0; b < (int)horizontalBlockListList.list[row].size(); ++b)
+		{
+			const BlockData& blockData = horizontalBlockListList.list[row][b];
+			fprintf(stderr, "[%d,%d) ", blockData.blockStart, blockData.blockEnd);
+		}
+		fprintf(stderr, "\n");
+	}
+	fprintf(stderr, "\nVERTICAL blocks:\n");
+	for (int column = 0; column < width; ++column)
+	{
+		fprintf(stderr, "column #%d: ", column);
+		for (int b = 0; b < (int)verticalBlockListList.list[column].size(); ++b)
+		{
+			const BlockData& blockData = verticalBlockListList.list[column][b];
+			fprintf(stderr, "[%d,%d) ", blockData.blockStart, blockData.blockEnd);
+		}
+		fprintf(stderr, "\n");
+	}
+#endif
 }

@@ -32,6 +32,7 @@ typedef enum {
 struct Element
 {
 	ElementType type;
+	int index; /* index in the matrix vector */
 	int horizontalBlockIndex;
 	int verticalBlockIndex;
 };
@@ -40,7 +41,7 @@ struct Matrix
 {
 private:
 	void calculateBlockStuff();
-	Matrix(): elements(), blockListLists(), width(0), height(0){}
+	Matrix(): elements(), horizontalBlockListList(true), verticalBlockListList(false), width(0), height(0){}
 public:
 	struct BlockData {
 		int hasLigth;
@@ -48,15 +49,16 @@ public:
 		int blockEnd; /* This index is NOT in the block. */
 		BlockData() :hasLigth(false), blockStart(-1), blockEnd(-1) {}
 	};
-	class BlockListLists
+	struct BlockListList
 	{
-	public:
-		std::vector<std::vector<BlockData> > horizontalBlockListList;
-		std::vector<std::vector<BlockData> > verticalBlockListList;
+		bool isHorizontal;
+		std::vector<std::vector<BlockData> > list;
+		BlockListList(bool isHorizontal);
 	};
 
 	std::vector<Element> elements;
-	BlockListLists blockListLists;
+	BlockListList horizontalBlockListList;
+	BlockListList verticalBlockListList;
 	int width;
 	int height;
 
@@ -73,6 +75,8 @@ public:
 	bool isAllLit ();
 	Element& element(int column, int row);
 	const Element& element(int column, int row) const;
+	int indexOf(int column, int row) const;
+
 };
 
 #endif /* __MATRIX_H__ */

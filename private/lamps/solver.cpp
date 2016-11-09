@@ -24,7 +24,7 @@ bool Solver::solve(Matrix& matrix, int index)
 		{
 			//fprintf (stderr, "Just started a new vertical block with index %d\n", index);
 			Matrix::BlockData& prevVerticalBlock =
-					matrix.blockListLists.verticalBlockListList[column][e.verticalBlockIndex-1];
+					matrix.verticalBlockListList.list[column][e.verticalBlockIndex-1];
 
 			if (!prevVerticalBlock.hasLigth)
 			{
@@ -35,7 +35,7 @@ bool Solver::solve(Matrix& matrix, int index)
 				{
 					Element& currentPrevElement = matrix.element(column, r);
 					Matrix::BlockData& CurrentPrevHorizontalBlock =
-							matrix.blockListLists.horizontalBlockListList[r][currentPrevElement.horizontalBlockIndex];
+							matrix.horizontalBlockListList.list[r][currentPrevElement.horizontalBlockIndex];
 
 					if (!CurrentPrevHorizontalBlock.hasLigth)
 					{
@@ -134,9 +134,9 @@ bool Solver::solve(Matrix& matrix, int index)
 			if (tryWithLamp)
 			{
 				Matrix::BlockData& horizontalBlockData =
-						matrix.blockListLists.horizontalBlockListList[row][e.horizontalBlockIndex];
+						matrix.horizontalBlockListList.list[row][e.horizontalBlockIndex];
 				Matrix::BlockData& verticalBlockData =
-						matrix.blockListLists.verticalBlockListList[column][e.verticalBlockIndex];
+						matrix.verticalBlockListList.list[column][e.verticalBlockIndex];
 
 				if (  !horizontalBlockData.hasLigth
 					&&!verticalBlockData.hasLigth)
@@ -173,7 +173,38 @@ bool Solver::solve(Matrix& matrix, int index)
 	return false;
 }
 
+bool Solver::sanityCheck(const Matrix& matrix) const
+{
+	for (int r = 0; r < matrix.height; ++r)
+	{
+		for (int c = 0; c < matrix.width; ++c)
+		{
+			const Element& e = matrix.element(c, r);
+			if (e.type&RESTRICTED_WALL)
+			{
+				int validLightCount = matrix.getLightCountForType(e.type);
+				int emptyAround = 0;
+
+				if (c > 0 && matrix.element(c-1, r).type == ELEMENT_EMPTY) ++emptyAround;
+				if (c < matrix.width-1 && matrix.element(c+1, r).type == ELEMENT_EMPTY) ++emptyAround;
+				if (r > 0 && matrix.element(c, r-1).type == ELEMENT_EMPTY) ++emptyAround;
+				if (r < matrix.height-1 && matrix.element(c, r+1).type == ELEMENT_EMPTY) ++emptyAround;
+
+				if (emptyAround < validLightCount)
+				{
+					return false;
+				}
+			}
+		}
+	}
+	return true;
+}
+
 bool Solver::solve(Matrix& matrix)
 {
+	if (!sanityCheck(matrix))
+	{
+		return false;
+	}
 	return solve(matrix, 0);
 }
