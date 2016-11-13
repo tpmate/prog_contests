@@ -117,12 +117,12 @@ void Matrix::calculateBlockStuff()
 	}
 }
 
-bool Matrix::isNextnonEmptyALight(int currentIndex, int difference, int count)
+bool Matrix::isNextnonEmptyALight(int currentIndex, int difference, int count) const
 {
 	int toCheck = currentIndex + difference;
 	for (int i = 0; i < count; ++i)
 	{
-		Element& e = elements[toCheck];
+		const Element& e = elements[toCheck];
 		if (e.type == ELEMENT_EMPTY)
 		{
 			toCheck += difference;
@@ -164,14 +164,14 @@ int Matrix::getLightCountForType(const ElementType& type) const
 }
 
 
-bool Matrix::checkLights ()
+bool Matrix::checkLights () const
 {
 	for (int c = 0; c < width; ++c)
 	{
 		for (int r = 0; r < height; ++r)
 		{
 			int currentIndex = indexOf(c, r);
-			Element& e = elements[currentIndex];
+			const Element& e = elements[currentIndex];
 			if (e.type == ELEMENT_LIGHT)
 			{
 				bool isOK =
@@ -195,14 +195,14 @@ bool Matrix::checkLights ()
 	return true;
 }
 
-bool Matrix::isAllLit ()
+bool Matrix::isAllLit () const
 {
 	for (int c = 0; c < width; ++c)
 	{
 		for (int r = 0; r < height; ++r)
 		{
 			int currentIndex = indexOf(c, r);
-			Element& e = elements[currentIndex];
+			const Element& e = elements[currentIndex];
 			if (e.type == ELEMENT_EMPTY)
 			{
 				bool isLit =
@@ -506,39 +506,36 @@ Matrix* Matrix::getDataFromFile(const char *inputFileName)
 //#define PRINT_BLOCK_STUFF
 //#define PRINT_BLOCK_LIST
 
-void Matrix::print ()
+void Matrix::print (FILE * file)
 {
 	int r, c;
 
-	string elementTypeHeader("matrix:");
 #ifdef PRINT_BLOCK_STUFF
+	string elementTypeHeader("matrix:");
 	string horizontalBlocksHeader("horizontal blocks:");
 	string verticalBlocksHeader("vertical blocks:");
-#endif
-
-	fprintf (stderr, "%s", elementTypeHeader.c_str());
-#ifdef PRINT_BLOCK_STUFF
-	fprintf (stderr, "  %s  %s",
+	fprintf (file, "%s", elementTypeHeader.c_str());
+	fprintf (file, "  %s  %s",
 			horizontalBlocksHeader.c_str(),
 			verticalBlocksHeader.c_str());
+	fprintf (file, "\n");
 #endif
-	fprintf (stderr, "\n");
 
 #ifdef PRINT_BLOCK_STUFF
 	for (c = 0; c < (width*4)+13; ++c)
 	{
-		fprintf(stderr, " ");
+		fprintf(file, " ");
 	}
 	for (c = 0; c < width; ++c)
 	{
-		fprintf(stderr, "% 3d", (int)blockListLists.verticalBlockListList[c].size());
+		fprintf(file, "% 3d", (int)verticalBlockListList.list[c].size());
 	}
-	fprintf (stderr, "\n");
+	fprintf (file, "\n");
 #endif
 
 	for (r = 0; r < height; ++r)
 	{
-		fprintf (stderr, "[");
+//		fprintf (file, "[");
 		for (c = 0; c < width; ++c)
 		{
 			char outChar;
@@ -563,47 +560,133 @@ void Matrix::print ()
 				default:
 					outChar = '?'; break;
 			}
-			fprintf(stderr, "%c", outChar);
+			fprintf(file, "%c", outChar);
 		}
-		fprintf (stderr, "]");
+//		fprintf (file, "]");
 
 #ifdef PRINT_BLOCK_STUFF
-		fprintf (stderr, "  % 3d [", (int)blockListLists.horizontalBlockListList[r].size());
+		fprintf (file, "  % 3d [", (int)horizontalBlockListList.list[r].size());
 		for (c = 0; c < width; ++c)
 		{
-			fprintf(stderr, "% 3d", element(c, r).horizontalBlockIndex);
+			fprintf(file, "% 3d", element(c, r).horizontalBlockIndex);
 		}
-		fprintf (stderr, "]  [");
+		fprintf (file, "]  [");
 		for (c = 0; c < width; ++c)
 		{
-			fprintf(stderr, "% 3d", element(c, r).verticalBlockIndex);
+			fprintf(file, "% 3d", element(c, r).verticalBlockIndex);
 		}
-		fprintf (stderr, "]");
+		fprintf (file, "]");
 #endif
-		fprintf (stderr, "\n");
+		fprintf (file, "\n");
 	}
 #ifdef PRINT_BLOCK_LIST
-	fprintf(stderr, "\nHORIZONTAL blocks:\n");
+	fprintf(file, "\nHORIZONTAL blocks:\n");
 	for (int row = 0; row < height; ++row)
 	{
-		fprintf(stderr, "row #%d: ", row);
+		fprintf(file, "row #%d: ", row);
 		for (int b = 0; b < (int)horizontalBlockListList.list[row].size(); ++b)
 		{
 			const BlockData& blockData = horizontalBlockListList.list[row][b];
-			fprintf(stderr, "[%d,%d) ", blockData.blockStart, blockData.blockEnd);
+			fprintf(file, "[%d,%d) ", blockData.blockStart, blockData.blockEnd);
 		}
-		fprintf(stderr, "\n");
+		fprintf(file, "\n");
 	}
-	fprintf(stderr, "\nVERTICAL blocks:\n");
+	fprintf(file, "\nVERTICAL blocks:\n");
 	for (int column = 0; column < width; ++column)
 	{
-		fprintf(stderr, "column #%d: ", column);
+		fprintf(file, "column #%d: ", column);
 		for (int b = 0; b < (int)verticalBlockListList.list[column].size(); ++b)
 		{
 			const BlockData& blockData = verticalBlockListList.list[column][b];
-			fprintf(stderr, "[%d,%d) ", blockData.blockStart, blockData.blockEnd);
+			fprintf(file, "[%d,%d) ", blockData.blockStart, blockData.blockEnd);
 		}
-		fprintf(stderr, "\n");
+		fprintf(file, "\n");
 	}
 #endif
+}
+
+void Matrix::printColored()
+{
+	int r, c;
+
+	string elementTypeHeader("matrix:");
+
+	fprintf (stderr, "%s", elementTypeHeader.c_str());
+	fprintf (stderr, "\n ");
+
+
+	for (c = 0; c < width; ++c)
+	{
+		if (c%10 == 0)
+		{
+			fprintf (stderr, "%d", c/10);
+		} else {
+			fprintf (stderr, " ");
+		}
+	}
+	fprintf (stderr, "\n ");
+	for (c = 0; c < width; ++c)
+	{
+		fprintf (stderr, "%d", c%10);
+	}
+	fprintf (stderr, "\n");
+
+
+	for (r = 0; r < height; ++r)
+	{
+		fprintf (stderr, "[");
+		for (c = 0; c < width; ++c)
+		{
+			char outChar;
+			Element& e = element(c, r);
+			switch (e.type)
+			{
+				case ELEMENT_EMPTY:
+					outChar = EMPTY;
+					if (verticalBlockListList.list[c][e.verticalBlockIndex].hasLigth ||
+						horizontalBlockListList.list[r][e.horizontalBlockIndex].hasLigth)
+					{
+						fprintf(stderr, ESC"[101m%c"ESC"[49m", outChar);
+					} else {
+						fprintf(stderr, "%c", outChar);
+					}
+					break;
+				case ELEMENT_LIGHT:
+					outChar = LIGHT;
+					fprintf(stderr, ESC"[37m%c"ESC"[39m", outChar);
+					break;
+				case ELEMENT_WALL:
+					outChar = WALL;
+					fprintf(stderr, ESC"[31m%c"ESC"[39m", outChar);
+					break;
+				case ELEMENT_WALL0:
+					outChar = WALL0;
+					fprintf(stderr, "%c", outChar);
+					break;
+				case ELEMENT_WALL1:
+					outChar = WALL1;
+					fprintf(stderr, "%c", outChar);
+					break;
+				case ELEMENT_WALL2:
+					outChar = WALL2;
+					fprintf(stderr, "%c", outChar);
+					break;
+				case ELEMENT_WALL3:
+					outChar = WALL3;
+					fprintf(stderr, "%c", outChar);
+					break;
+				case ELEMENT_WALL4:
+					outChar = WALL4;
+					fprintf(stderr, "%c", outChar);
+					break;
+				default:
+					outChar = '?';
+					fprintf(stderr, "%c", outChar);
+					break;
+			}
+		}
+		fprintf (stderr, "]");
+
+		fprintf (stderr, "\n");
+	}
 }

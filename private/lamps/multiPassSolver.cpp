@@ -192,10 +192,28 @@ bool Solver::solve(Matrix& matrix, int index)
 }
 #endif
 
+void propagateInList (vector<int>& lists, int idx, int newValue)
+{
+	if (lists[idx] == newValue)
+	{
+		return;
+	}
+//	fprintf (stderr, "propagateInList from idx=%d to=%d\n", idx, newValue);
+	if (lists[idx] != idx)
+	{
+//		fprintf (stderr, "recurse...\n");
+		propagateInList(lists, lists[idx], newValue);
+	}
+//	fprintf (stderr, "Setting lists[%d]=%d\n", idx, newValue);
+	lists[idx] = newValue;
+}
+
 void mapBlocks(const Matrix& matrix,
 			   const Matrix::BlockData& primaryBlock,
 			   int primaryBlockListIndex,
-			   const Matrix::BlockListList& secondaryBlockListList)
+			   const Matrix::BlockListList& secondaryBlockListList,
+			   vector<int>& map, int currentListIdx,
+			   vector<int>& lists, bool& listIdxIncreased)
 {
 	for (int secondaryCrossElementIndex = primaryBlock.blockStart;
 			secondaryCrossElementIndex < primaryBlock.blockEnd;
@@ -237,30 +255,32 @@ void mapBlocks(const Matrix& matrix,
 			{
 				mapColumn = mapElementIndex;
 				mapRow = secondaryCrossElementIndex;
-			} else {
+			} else
+			{
 				mapColumn = secondaryCrossElementIndex;
 				mapRow = mapElementIndex;
 			}
 
-			fprintf (stderr, "Checking (%d, %d)\n", mapColumn, mapRow);
-/*
-			int index = matrix.indexOf(bc, br);
-			int& mapElement = map[index];
+			//fprintf (stderr, "Checking (%d, %d)\n", mapColumn, mapRow);
+
+			int mapIdx = matrix.indexOf(mapColumn, mapRow);
+			int& mapElement = map[mapIdx];
 			if (mapElement == -1)
 			{
-				mapElement = currentListId;
-				listUsed = true;
-			} else if (mapElement != currentListId)
+				mapElement = currentListIdx;
+			} else if (mapElement != currentListIdx)
 			{
-				listUsed = true;
-				lists[mapElement] = currentListId;
+				propagateInList(lists, currentListIdx, currentListIdx+1);
+				propagateInList(lists, mapElement, currentListIdx+1);
+				listIdxIncreased = true;
 			}
-*/
 		}
 	}
 }
 
-void mapEnvironment(const Matrix& matrix, int column, int row)
+void mapEnvironment(const Matrix& matrix, int column, int row,
+		vector<int>& map, int currentListIdx,
+	    vector<int>& lists, bool& listIdxIncreased)
 {
 	//bool listUsed = false;
 	/*set the list value of the map*/
@@ -271,7 +291,8 @@ void mapEnvironment(const Matrix& matrix, int column, int row)
 		if (e1.type==ELEMENT_EMPTY)
 		{
 			const Matrix::BlockData& primaryBlock = matrix.verticalBlockListList.list[column][e1.verticalBlockIndex];
-			mapBlocks(matrix, primaryBlock, column, matrix.horizontalBlockListList);
+			mapBlocks(matrix, primaryBlock, column, matrix.horizontalBlockListList,
+					map, currentListIdx, lists, listIdxIncreased);
 		}
 	}
 	if (row < matrix.height-1)
@@ -280,7 +301,8 @@ void mapEnvironment(const Matrix& matrix, int column, int row)
 		if (e1.type==ELEMENT_EMPTY)
 		{
 			const Matrix::BlockData& primaryBlock = matrix.verticalBlockListList.list[column][e1.verticalBlockIndex];
-			mapBlocks(matrix, primaryBlock, column, matrix.horizontalBlockListList);
+			mapBlocks(matrix, primaryBlock, column, matrix.horizontalBlockListList,
+					map, currentListIdx, lists, listIdxIncreased);
 		}
 	}
 	if (column > 0)
@@ -289,7 +311,8 @@ void mapEnvironment(const Matrix& matrix, int column, int row)
 		if (e1.type==ELEMENT_EMPTY)
 		{
 			const Matrix::BlockData& primaryBlock = matrix.horizontalBlockListList.list[row][e1.horizontalBlockIndex];
-			mapBlocks(matrix, primaryBlock, row, matrix.verticalBlockListList);
+			mapBlocks(matrix, primaryBlock, row, matrix.verticalBlockListList,
+					map, currentListIdx, lists, listIdxIncreased);
 		}
 	}
 	if (column < matrix.width-1)
@@ -298,21 +321,79 @@ void mapEnvironment(const Matrix& matrix, int column, int row)
 		if (e1.type==ELEMENT_EMPTY)
 		{
 			const Matrix::BlockData& primaryBlock = matrix.horizontalBlockListList.list[row][e1.horizontalBlockIndex];
-			mapBlocks(matrix, primaryBlock, row, matrix.verticalBlockListList);
+			mapBlocks(matrix, primaryBlock, row, matrix.verticalBlockListList,
+					map, currentListIdx, lists, listIdxIncreased);
 		}
 	}
+}
+
+void printMap (const Matrix& matrix, const vector<int>& map)
+{
+	for (int r = 0; r < matrix.height; ++r)
+	{
+		for (int c = 0; c < matrix.width; ++c)
+		{
+			int idx = matrix.indexOf(c, r);
+			if (map[idx] == -1)
+			{
+				fprintf (stderr, "   ");
+			} else
+			{
+				fprintf (stderr, "% 3d", map[idx]); // lists[map[idx]]
+			}
+		}
+		fprintf (stderr, "\n");
+	}
+}
+
+void printList (const vector<int>& lists, int numOfItems)
+{
+	/*
+	fprintf (stderr, "         ");
+	for (int i = 0; i < numOfItems; ++i)
+	{
+		fprintf (stderr, " % 3d", i);
+	}
+	fprintf (stderr, "\n");
+	*/
+	fprintf (stderr, "lists = [");
+	for (int i = 0; i < numOfItems; ++i)
+	{
+		fprintf (stderr, " % 3d", lists[i]);
+	}
+	fprintf (stderr, " ]\n");
 }
 
 void RunPass1 (Matrix& matrix)
 {
 	/* ---------------------------------------------------------------------- */
 	/* first try to create the Map of the matrix to have the regions to solve */
-	vector<int> map (matrix.elements.size(), -1);
+	vector<int> map (matrix.elements.size());
 	/* at each listIndex the value is the index of the parent list.
 	 * A list has no parent if it has the value -1*/
-	vector<int> lists (matrix.elements.size(), -1);
+	vector<int> lists (matrix.elements.size());
+
+	for (int i = 0; i < (int)lists.size(); ++i)
+	{
+		lists[i] = i;
+		map[i] = -1;
+	}
+
+	/*
+	fprintf (stderr, "\nThe map before everything:\n");
+	for (int r = 0; r < matrix.height; ++r)
+	{
+		for (int c = 0; c < matrix.width; ++c)
+		{
+			int idx = matrix.indexOf(c, r);
+			fprintf (stderr, "% 3d", map[idx]); // lists[map[idx]]
+		}
+		fprintf (stderr, "\n");
+	}
+	*/
+
 	/*first look for the numbered walls*/
-	//int currentListId = 0;
+	int currentListIdx = 0;
 	for (int r = 0; r < matrix.height; ++r)
 	{
 		for (int c = 0; c < matrix.width; ++c)
@@ -320,12 +401,62 @@ void RunPass1 (Matrix& matrix)
 			Element& e = matrix.element(c, r);
 			if (e.type & RESTRICTED_WALL)
 			{
-				mapEnvironment(matrix, c, r);
+				bool listIdxIncreased = false;
+				mapEnvironment(matrix, c, r, map, currentListIdx, lists, listIdxIncreased);
+				++currentListIdx;
+				if (listIdxIncreased)
+				{
+					++currentListIdx; // Not a mistake, we increase it _again_!
+				}
+//				fprintf (stderr, "\nA step done:\n");
+//				printMap (matrix, map);
+//				printList (lists, currentListIdx);
 			}
 		}
 	}
 
+	/* normalise the lists */
+	fprintf (stderr, "List before normalisation:\n");
+	printList (lists, currentListIdx);
+	for (int i = 0; i < (int)lists.size(); ++i)
+	{
+		if (lists[i] != i)
+		{
+			while (lists[lists[i]] != lists[i])
+			{
+				lists[i] = lists[lists[i]];
+			}
+		}
+	}
+	fprintf (stderr, "List after  normalisation:\n");
+	printList (lists, currentListIdx);
+
+	/* The indexes in the list are too big, remap them to smaller numbers */
+	for (int i = 0; i < currentListIdx; ++i)
+	{
+		if (lists[i] != i)
+		{
+			while (lists[lists[i]] != lists[i])
+			{
+				lists[i] = lists[lists[i]];
+			}
+		}
+	}
+
+	fprintf (stderr, "\nThe map with the normalised list: \n");
+	for (int r = 0; r < matrix.height; ++r)
+	{
+		for (int c = 0; c < matrix.width; ++c)
+		{
+			int idx = matrix.indexOf(c, r);
+			fprintf (stderr, "% 3d", lists[map[idx]]); // lists[map[idx]]
+		}
+		fprintf (stderr, "\n");
+	}
+
+
 	/* then create the list of the elements in each region (lists of indexes)*/
+
 
 	/* then solve each region */
 

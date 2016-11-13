@@ -7,6 +7,7 @@
 #include "solver.h"
 #include "generator.h"
 #include "multiPassSolver.h"
+#include "nonrecursiveSolver.h"
 
 using namespace std;
 
@@ -83,9 +84,14 @@ int main (int argc, char** argv)
 		matrix = Matrix::getDataFromString(generator.getNextMatrix(width, height, wallProb, numberedWallProb), width, height);
 	} else if (mode == MODE_BUILTIN)
 	{
-		matrix = Matrix::getDataFromString(string(
+/*		matrix = Matrix::getDataFromString(string(
 				"      # \n      # \n  #     \n    ##  \n   #    \n #   #  \n  #    0\n   #  # ")
 				, 8, 8);
+*/
+		matrix = Matrix::getDataFromString(string(
+		" # 2\n    \n   #\n    ")
+				, 4, 4);
+
 
 	} else if (mode==MODE_FILE)
 	{
@@ -106,24 +112,23 @@ int main (int argc, char** argv)
 	if (matrix)
 	{
 		fprintf(stderr, "The original matrix is:\n");
-		matrix->print();
+		matrix->printColored();
 		fprintf(stderr, "\n");
-/*
+
 		Solver solver;
+//		MutiPassSolver solver;
+//		NonrecursiveSolver solver;
 
 		if (solver.solve(*matrix))
 		{
 			fprintf(stderr, "A solution is:\n");
-			matrix->print();
+			matrix->printColored();
 			fprintf(stderr, "\n");
+			matrix->print(stdout);
+			fprintf(stdout, "\n");
 		} else {
-			fprintf(stderr, "There is no solution with this matrix.\n");
+			fprintf(stdout, "There is no solution with this matrix.\n");
 		}
-*/
-
-		MutiPassSolver solver;
-
-		solver.solve(*matrix);
 
 		delete matrix;
 	} else {

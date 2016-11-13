@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <string>
 
+#define ESC "\033"
 
 typedef enum {
 	ELEMENT_EMPTY = 1u << 0,
@@ -67,12 +68,13 @@ public:
 	static Matrix* getDataFromFile(const char *inputFileName);
 	static Matrix* getDataFromString(const std::string& s, int width, int height);
 
-	void print();
+	void print(FILE * file);
+	void printColored();
 	int getLightCount (int column, int row) const;
 	int getLightCountForType(const ElementType& type) const;
-	bool isNextnonEmptyALight(int currentIndex, int difference, int count);
-	bool checkLights ();
-	bool isAllLit ();
+	bool isNextnonEmptyALight(int currentIndex, int difference, int count) const;
+	bool checkLights () const;
+	bool isAllLit () const;
 	Element& element(int column, int row);
 	const Element& element(int column, int row) const;
 	int indexOf(int column, int row) const;
