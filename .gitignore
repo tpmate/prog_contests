@@ -1,0 +1,7 @@
+*[oa]
+
+callgrind.out.*
+private/lamps/lamps
+private/lamps/out.txt
+private/lamps/run_samples.sh
+
